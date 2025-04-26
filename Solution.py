@@ -6,6 +6,7 @@ class CGLCell(tk.Label):
         tk.Label.__init__(self, master, height=2, width=1, font=("Courier New", 14), borderwidth=5, relief=tk.GROOVE)
         self.grid(row=int(coord[0]), column=int(coord[1]))
         self.state = False
+        self.nextState = False
         self.coord = coord
         self.master = master
         self['bg'] = 'black'
@@ -13,8 +14,6 @@ class CGLCell(tk.Label):
         # self.checkSurrounding()
         self.bind("<Button-1>", self.toggle)
         self.after(1000,self.update)
-        # while True:
-        #     self.update()
 
 
     def giveState(self):
@@ -25,6 +24,9 @@ class CGLCell(tk.Label):
 
     def isupdating(self):
         return self.isUpdating
+
+    def giveNextState(self):
+        return self.nextState
 
     def stopUpdating(self):
         self.isUpdating = False
@@ -39,6 +41,7 @@ class CGLCell(tk.Label):
             self['bg'] = 'white'
         else:
             self['bg'] = 'black'
+        self.nextState = self.state
         # print(self.giveState())
         # print(self.checkSurrounding())
 
@@ -56,19 +59,30 @@ class CGLCell(tk.Label):
         '''calls the frame to check how many cells around it are alive'''
         return self.master.checkSurroundingCoord(coord=self.giveCoords())
 
-    def update(self):
+    def checkNextState(self):
         surroundingAliveCells = self.checkSurrounding()
-        if self.giveState():
+
+        if self.giveState()==True:
             if surroundingAliveCells < 2:
-                self.die()
+                # self.die()
+                self.nextState = False
             if surroundingAliveCells > 3:
-                self.die()
+                # self.die()
+                self.nextState = False
+            if surroundingAliveCells == 2 or surroundingAliveCells == 3:
+                self.nextState = True
         else:
             if surroundingAliveCells == 3:
-                self.live()
-        if self.isupdating():
-            self.after(1000,self.update)
+                # self.live()
+                self.nextState = True
+        # if self.isupdating():
+        #     self.after(1000,self.update)
 
+    def update(self):
+        if self.nextState:
+            self.live()
+        else:
+            self.die()
 
 class CGLFrame(tk.Frame):
     def __init__(self, master, rows, cols):
@@ -93,9 +107,7 @@ class CGLFrame(tk.Frame):
 
         self.isUpdating = True
 
-        self.bind('<space>',self.toggleUpdating)
-
-        self.toggleUpdating('hi')
+        # self.toggleUpdating('hi')
 
 
     def checkSurroundingCoord(self,coord):
@@ -116,16 +128,42 @@ class CGLFrame(tk.Frame):
             aliveCounter -= 1
         return aliveCounter
 
+    # def toggleUpdating(self,event):
+    #     self.isUpdating = not self.isUpdating
+    #     # self.cellGrid[0][0].toggle(' ')
+    #     # print(self.isUpdating)
+    #     for r in range(self.rows):
+    #         for c in range(self.cols):
+    #             if self.isUpdating:
+    #                 self.cellGrid[r][c].startUpdating()
+    #             else:
+    #                 self.cellGrid[r][c].stopUpdating()
+
     def toggleUpdating(self,event):
         self.isUpdating = not self.isUpdating
-        # self.cellGrid[0][0].toggle(' ')
-        # print(self.isUpdating)
+        if self.isUpdating == True:
+            self.checkThenUpdate()
+
+    def checkThenUpdate(self):
+        # print('hi')
+        # self.cellGrid[9][8].live()
         for r in range(self.rows):
             for c in range(self.cols):
-                if self.isUpdating:
-                    self.cellGrid[r][c].startUpdating()
-                else:
-                    self.cellGrid[r][c].stopUpdating()
+                # print(r,c)
+                # print(self.cellGrid[r][c].giveNextState(), self.cellGrid[r][c].checkSurrounding())
+                self.cellGrid[r][c].giveNextState()
+                # self.cellGrid[r][c].checkSurrounding()
+                self.cellGrid[r][c].checkNextState()
+                # print(self.cellGrid[r][c].giveNextState(),self.cellGrid[r][c].checkSurrounding())
+                self.cellGrid[r][c].giveNextState()
+                self.cellGrid[r][c].checkSurrounding()
+        for r in range(self.rows):
+            for c in range(self.cols):
+                self.cellGrid[r][c].update()
+
+        if self.isUpdating == True:
+            self.after(500,self.checkThenUpdate)
+
 
 root = tk.Tk()
 root.title("Conway's Game of Life")
